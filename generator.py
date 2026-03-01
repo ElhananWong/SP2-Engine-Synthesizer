@@ -1,5 +1,6 @@
 ﻿from math import ceil
 import pretty_midi as pm
+import normalizer
 
 RPM_COEFFICIENT = 0.37
 RPM_MIN = 3000
@@ -76,6 +77,11 @@ def generate_funky_tree_expression_from_midi(path, loop=False, normalize=False, 
         output (str): Optional file path to save the generated expressions. If empty, expressions will print to stdout.
     """
     tracks = parse_midi_tracks(path)
+
+    # normalize pitches into range of engine rpms
+    if normalize:
+        lo, hi = normalizer.get_playable_midi_range()
+        tracks = normalizer.normalize_octaves_all_tracks(tracks, lo, hi)
 
     # find max end time across all tracks to determine the length of the loop
     length = max(note["end"] for track in tracks for note in track) + 3 # add some extra time at the end
