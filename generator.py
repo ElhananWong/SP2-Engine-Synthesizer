@@ -1,0 +1,92 @@
+﻿from math import ceil
+import pretty_midi as pm
+
+RPM_COEFFICIENT = 0.37
+RPM_MIN = 3000
+RPM_MAX = 15000
+RPM_OFFSET = 512
+
+def parse_midi_tracks(path):
+    """Parses a MIDI file and extracts the note information for each track.
+    Args:
+        path (str): The file path to the MIDI file.
+    Returns:
+        A list of dictionaries, each containing the note information for a track.
+                - pitch (int): The MIDI pitch of the note.
+                - start (float): The start time of the note in seconds.
+                - end (float): The end time of the note in seconds.
+                - duration (float): The duration of the note in seconds.
+    """
+
+    midi = pm.PrettyMIDI(path)
+    tracks = []
+
+    for instrument in midi.instruments:
+        notes = []
+        for note in instrument.notes:
+            notes.append({
+                "pitch": note.pitch,
+                "start": note.start,
+                "end": note.end,
+                "duration": note.end - note.start
+            })
+        tracks.append(notes)
+
+    return tracks
+
+def note_to_rpm(note, base_note=36, base_freq=65.41):
+    """Map a MIDI note to a corresponding RPM value using a linear mapping.
+    Args:
+        note (int): The MIDI pitch of the note.
+        base_note (int): The MIDI pitch that corresponds to the base RPM.
+        base_rpm (int): The RPM value corresponding to the base note.
+    Returns:
+        int: The corresponding RPM value.
+    """
+    freq = base_freq * (2 ** ((note - base_note) / 12))
+    rpm = freq * 60 * RPM_COEFFICIENT + RPM_OFFSET
+    return max(RPM_MIN, min(RPM_MAX, int(rpm)))
+
+def generate_funky_expression(notes, base_note=36, base_rpm=RPM_MIN):
+    """Generate a Funky-Tree expression sequence from a list of MIDI notes.
+    Args:
+        notes (list): A list of dictionaries containing note information.
+        base_note (int): The MIDI pitch that corresponds to the base RPM.
+        base_rpm (int): The RPM value corresponding to the base note.
+    Returns:
+        str: A Funky-Tree expression sequence representing the track.
+    """
+    terms = [str(base_rpm)]
+
+    for note in notes:
+        rpm = note_to_rpm(note["pitch"])
+        start = round(note["start"], 3)
+        end = round(note["end"], 3)
+        rpm = round(rpm, 1)
+        term = f"(Time>{start}&Time<{end}?{rpm-base_rpm}:0)"
+        terms.append(term)
+
+    return "+".join(terms)
+
+def generate_funky_tree_expression_from_midi(path, loop=False, normalize=False, output=""):
+    """Generate Funky-Tree expressions for each track in a MIDI file and optionally save them to a text file.
+    Args:
+        path (str): The file path to the MIDI file.
+        loop (bool): Whether to use looping time in the expressions.
+        output (str): Optional file path to save the generated expressions. If empty, expressions will print to stdout.
+    """
+    tracks = parse_midi_tracks(path)
+
+    # find max end time across all tracks to determine the length of the loop
+    length = max(note["end"] for track in tracks for note in track) + 3 # add some extra time at the end
+
+    expressions = []
+    for i, notes in enumerate(tracks):
+        expression = generate_funky_expression(notes)
+        new_expression = str.replace(expression, "Time", f"Time%{length}" if loop else "Time")
+        expressions.append(f"Track {i + 1} Expression:\n{new_expression}\n")
+    if output:
+        with open(output, "w") as f:
+            f.write("\n".join(expressions))
+    else:
+        print("\n".join(expressions))
