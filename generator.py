@@ -1,5 +1,6 @@
 ﻿from math import ceil
 import pretty_midi as pm
+import argparse, os, sys
 import normalizer
 
 RPM_COEFFICIENT = 0.37
@@ -96,3 +97,44 @@ def generate_funky_tree_expression_from_midi(path, loop=False, normalize=False, 
             f.write("\n".join(expressions))
     else:
         print("\n".join(expressions))
+
+
+
+def _build_arg_parser():
+    parser = argparse.ArgumentParser(
+        prog="generator.py",
+        description="Convert a MIDI file into Funky-Tree expressions."
+    )
+    parser.add_argument("midi", help="Path to the input MIDI file.")
+    parser.add_argument("-o", "--output", help="Path to write expressions (default: stdout).", default="")
+    parser.add_argument("-l", "--loop", help="Enable looping by using Time%<length>.", action="store_true")
+    parser.add_argument("-n", "--normalize", help="Normalize pitches into playable engine range.", action="store_true")
+    return parser
+
+
+def _validate_args(args):
+    if not os.path.isfile(args.midi):
+        raise FileNotFoundError(f"MIDI file not found: {args.midi}")
+
+
+def main(argv=None):
+    argv = argv if argv is not None else sys.argv[1:]
+    parser = _build_arg_parser()
+    args = parser.parse_args(argv)
+
+    try:
+        _validate_args(args)
+    except Exception as ex:
+        print(f"Argument error: {ex}", file=sys.stderr)
+        return 2
+
+    try:
+        generate_funky_tree_expression_from_midi(args.midi, loop=args.loop, normalize=args.normalize, output=args.output)
+    except Exception as ex:
+        print(f"Error processing MIDI: {ex}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
