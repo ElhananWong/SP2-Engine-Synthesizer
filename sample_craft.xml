@@ -1626,13 +1626,8 @@
     <Material style="SolidColor" name="Unused" color="000000FF" s="0.7" m="0.5" ed="0" en="0" />
   </Theme>
   <CraftDrag drag="0.8937722,0.8938191,1,1,0.9411326,0.9412254" dragArea="1.823497,1.823592,2.376914,2.376914,1.920123,1.920312" />
-  <Instructions>Muska
-By: 6wheel
-
-AG1: Traction control (default on)
-AG2: Active Stability Management (default on)
-AG3: Lights
-AG4: Front Door
-
-Notes: Euro style racing trike! Mastering weight tranfer is key. Turn off AG1&amp;2 for maximum skids and chaos. </Instructions>
+  <Instructions>Original Muska Craft by: 6wheel
+  Place FT expressions in the craft's variable setters under the variable "MIDI" to change the played song.
+  If engine fails to start, the FT expression may be too long. Placing the expression directly in the engine's input controller may work instead, but may increase craft loading time.
+ </Instructions>
 </Aircraft>
