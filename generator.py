@@ -1,12 +1,39 @@
-﻿from math import ceil
+﻿import math
+import warnings
 import pretty_midi as pm
 import argparse, os, sys
 import normalizer
 
-RPM_COEFFICIENT = 0.37
-RPM_MIN = 3000
+RPM_MIN = 2400
 RPM_MAX = 15000
 RPM_OFFSET = 512
+
+# Empirical calibration data
+_CALIBRATION = [
+    (53, 2800),    # F3
+    (55, 3200),    # G3
+    (57, 3810),    # A3
+    (59, 4460),    # B3
+    (60, 4600),    # C4
+    (62, 5400),    # D4
+    (64, 6290),    # E4
+    (65, 6830),    # F4
+    (67, 7700),    # G4
+    (69, 9290),    # A4
+    (71, 11200),   # B4
+    (72, 12500),   # C5
+    (73, 14000),   # C#5
+]
+
+_CAL_NOTES    = [p[0] for p in _CALIBRATION]
+_CAL_LOG_RPMS = [math.log(p[1]) for p in _CALIBRATION]
+
+# Engine slip zone: RPM controller becomes bistable in this range.
+# The engine rises to ~3560 when ascending, ~3100 when descending.
+# Notes mapping here will not hold pitch reliably.
+SLIP_ZONE_LOW  = 3100
+SLIP_ZONE_HIGH = 3560
+
 
 def parse_midi_tracks(path):
     """Parses a MIDI file and extracts the note information for each track.
@@ -36,25 +63,53 @@ def parse_midi_tracks(path):
 
     return tracks
 
-def note_to_rpm(note, base_note=36, base_freq=65.41):
-    """Map a MIDI note to a corresponding RPM value using a linear mapping.
-    Args:
-        note (int): The MIDI pitch of the note.
-        base_note (int): The MIDI pitch that corresponds to the base RPM.
-        base_rpm (int): The RPM value corresponding to the base note.
-    Returns:
-        int: The corresponding RPM value.
-    """
-    freq = base_freq * (2 ** ((note - base_note) / 12))
-    rpm = freq * 60 * RPM_COEFFICIENT + RPM_OFFSET
-    return max(RPM_MIN, min(RPM_MAX, int(rpm)))
+def _log_interp(x, xs, log_ys):
+    """Piecewise log-linear interpolation with flat extrapolation at boundaries.
 
-def generate_funky_expression(notes, base_note=36, base_rpm=RPM_MIN):
+    Interpolates in log(y) space to track the power-law curvature of the engine's
+    RPM–frequency response (~freq^1.3).
+    """
+    if x <= xs[0]:
+        return log_ys[0]
+    if x >= xs[-1]:
+        return log_ys[-1]
+    for i in range(len(xs) - 1):
+        if xs[i] <= x <= xs[i + 1]:
+            t = (x - xs[i]) / (xs[i + 1] - xs[i])
+            return log_ys[i] + t * (log_ys[i + 1] - log_ys[i])
+
+
+def note_to_rpm(note):
+    """Map a MIDI note to a target RPM using empirical calibration data.
+
+    Notes that fall in the engine's slip zone (~3100–3560 RPM) are
+    flagged: the controller cannot hold a steady RPM there and pitch
+    will drift to one of the zone's edges.
+
+    Args:
+        note (int): MIDI pitch number (e.g. 69 = A4).
+    Returns:
+        int: Target RPM clamped to [RPM_MIN, RPM_MAX].
+    """
+    log_rpm = _log_interp(float(note), _CAL_NOTES, _CAL_LOG_RPMS)
+    rpm = int(math.exp(log_rpm))
+
+    if SLIP_ZONE_LOW <= rpm <= SLIP_ZONE_HIGH:
+        warnings.warn(
+            f"MIDI note {note} maps to {rpm} RPM, which falls in the engine "
+            f"slip zone ({SLIP_ZONE_LOW}–{SLIP_ZONE_HIGH} RPM). "
+            "The engine will not hold this pitch stably.",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    return max(RPM_MIN, min(RPM_MAX, rpm))
+
+def generate_funky_expression(notes, base_rpm=RPM_MIN):
     """Generate a Funky-Tree expression sequence from a list of MIDI notes.
     Args:
         notes (list): A list of dictionaries containing note information.
-        base_note (int): The MIDI pitch that corresponds to the base RPM.
-        base_rpm (int): The RPM value corresponding to the base note.
+        base_rpm (int): The idle RPM value.
     Returns:
         str: A Funky-Tree expression sequence representing the track.
     """
@@ -86,6 +141,7 @@ def generate_funky_tree_expression_from_midi(path, loop=False, normalize=False, 
 
     # find max end time across all tracks to determine the length of the loop
     length = max(note["end"] for track in tracks for note in track) + 3 # add some extra time at the end
+    length = round(length, 3)
 
     expressions = []
     for i, notes in enumerate(tracks):
