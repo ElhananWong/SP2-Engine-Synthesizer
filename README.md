@@ -20,8 +20,6 @@ Converts MIDI files into SP2 funky tree expressions to control car engines as so
 - `--normalize`: attempt to normalize octave ranges to fit inside engine RPM range.
 
 ## Sample craft
-Default values in the generator script are set to match the sample craft's engine RPM range and tuning, but can be adjusted for different setups.
+Default values in the generator script are set to match the demo craft's engine RPM range and tuning, but can be retuned for different setups.
 
-Sample craft credit:
-- Craft based on "Muska" stock craft by 6wheel
-- MIDI: https://onlinesequencer.net/5433043
+MIDI used: https://onlinesequencer.net/5433043

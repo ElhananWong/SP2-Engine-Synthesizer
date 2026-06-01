@@ -4,32 +4,45 @@ import pretty_midi as pm
 import argparse, os, sys
 import normalizer
 
-RPM_MIN = 2400
+RPM_MIN = 2150
 RPM_MAX = 15000
 RPM_OFFSET = 512
 
 # Empirical calibration data
 _CALIBRATION = [
-    (53, 2800),    # F3
+    (50, 2150),    # D3
+    (51, 2300),    # D#3
+    (52, 2500),    # E3
+    (53, 2750),    # F3
+    (54, 2960),    # F#3
     (55, 3200),    # G3
-    (57, 3810),    # A3
-    (59, 4460),    # B3
-    (60, 4600),    # C4
-    (62, 5400),    # D4
-    (64, 6290),    # E4
-    (65, 6830),    # F4
-    (67, 7700),    # G4
-    (69, 9290),    # A4
-    (71, 11200),   # B4
-    (72, 12500),   # C5
-    (73, 14000),   # C#5
+    (56, 3450),    # G#3
+    (57, 3750),    # A3
+    (58, 4000),    # A#3
+    (59, 4300),    # B3
+    (60, 4700),    # C4
+    (61, 5000),    # C#4
+    (62, 5450),    # D4
+    (63, 5850),    # D#4
+    (64, 6250),    # E4
+    (65, 6600),    # F4
+    (66, 7150),    # F#4
+    (67, 7600),    # G4
+    (68, 8000),    # G#4
+    (69, 8720),    # A4
+    (70, 9300),    # A#4
+    (71, 10010),   # B5
+    (72, 10700),   # C5
+    (73, 11500),   # C#5
+    (74, 12200),   # D5
+    (75, 13100),   # D#5
+    (76, 14000),   # E5
 ]
 
 _CAL_NOTES    = [p[0] for p in _CALIBRATION]
-_CAL_LOG_RPMS = [math.log(p[1]) for p in _CALIBRATION]
+_CAL_RPMS = [p[1] for p in _CALIBRATION]
 
-# Engine slip zone: RPM controller becomes bistable in this range.
-# The engine rises to ~3560 when ascending, ~3100 when descending.
+# Engine slip zone
 # Notes mapping here will not hold pitch reliably.
 SLIP_ZONE_LOW  = 3100
 SLIP_ZONE_HIGH = 3560
@@ -63,22 +76,6 @@ def parse_midi_tracks(path):
 
     return tracks
 
-def _log_interp(x, xs, log_ys):
-    """Piecewise log-linear interpolation with flat extrapolation at boundaries.
-
-    Interpolates in log(y) space to track the power-law curvature of the engine's
-    RPM–frequency response (~freq^1.3).
-    """
-    if x <= xs[0]:
-        return log_ys[0]
-    if x >= xs[-1]:
-        return log_ys[-1]
-    for i in range(len(xs) - 1):
-        if xs[i] <= x <= xs[i + 1]:
-            t = (x - xs[i]) / (xs[i + 1] - xs[i])
-            return log_ys[i] + t * (log_ys[i + 1] - log_ys[i])
-
-
 def note_to_rpm(note):
     """Map a MIDI note to a target RPM using empirical calibration data.
 
@@ -91,8 +88,14 @@ def note_to_rpm(note):
     Returns:
         int: Target RPM clamped to [RPM_MIN, RPM_MAX].
     """
-    log_rpm = _log_interp(float(note), _CAL_NOTES, _CAL_LOG_RPMS)
-    rpm = int(math.exp(log_rpm))
+
+    if note <= _CAL_NOTES[0]:
+        return _CAL_RPMS[0]
+    if note >= _CAL_NOTES[-1]:
+        return _CAL_RPMS[-1]
+
+    idn = _CAL_NOTES.index(note)
+    rpm = _CAL_RPMS[idn]
 
     if SLIP_ZONE_LOW <= rpm <= SLIP_ZONE_HIGH:
         warnings.warn(
@@ -116,7 +119,7 @@ def generate_funky_expression(notes, base_rpm=RPM_MIN):
     terms = [str(base_rpm)]
 
     for note in notes:
-        rpm = note_to_rpm(note["pitch"])
+        rpm = note_to_rpm(note["pitch"]) + RPM_OFFSET
         start = round(note["start"], 3)
         end = round(note["end"], 3)
         rpm = round(rpm, 1)
