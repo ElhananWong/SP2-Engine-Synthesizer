@@ -166,7 +166,7 @@ def _build_arg_parser():
     )
     parser.add_argument("midi", help="Path to the input MIDI file.")
     parser.add_argument("-o", "--output", help="Path to write expressions (default: stdout).", default="")
-    parser.add_argument("-l", "--loop", help="Enable looping by using Time%<length>.", action="store_true")
+    parser.add_argument("-l", "--loop", help="Enable looping by using Time%%<length>.", action="store_true")
     parser.add_argument("-n", "--normalize", help="Normalize pitches into playable engine range.", action="store_true")
     return parser
 
