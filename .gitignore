@@ -1,5 +1,7 @@
-﻿*.xml
-*.txt
+﻿*.txt
 *.mid
 
 /.vs
+/generator2.py
+/generator (old).py
+/generator.py
