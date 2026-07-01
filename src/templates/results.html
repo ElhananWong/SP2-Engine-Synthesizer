@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SP2 Engine Synth Results</title>
+    <style>
+        :root {
+            --blue: #5aa1f2;
+            --ink: #20242a;
+            --muted: #5d6670;
+            --line: #d8dde3;
+            --paper: #f8f8f6;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: var(--paper);
+            font-family: Arial, Helvetica, sans-serif;
+            letter-spacing: 0;
+        }
+
+        .result-panel {
+            min-height: 42vh;
+            padding: 42px 18px 34px;
+            color: var(--white);
+            background: var(--blue);
+            border-bottom: 2px solid #737373;
+        }
+
+        .result-inner {
+            width: min(980px, 100%);
+            margin: 0 auto;
+            display: grid;
+            gap: 22px;
+        }
+
+        .result-header {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(1.55rem, 3vw, 2.25rem);
+            font-weight: 400;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button,
+        .button-link {
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 18px;
+            color: var(--ink);
+            background: var(--white);
+            border: 1px solid #5f6f7f;
+            cursor: pointer;
+            font: inherit;
+            text-decoration: none;
+        }
+
+        button:hover,
+        .button-link:hover {
+            background: #eef5ff;
+        }
+
+        .output-box {
+            min-height: 210px;
+            max-height: 52vh;
+            margin: 0;
+            padding: 18px;
+            overflow: auto;
+            color: var(--ink);
+            background: var(--white);
+            border: 1px solid #5f6f7f;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.9rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .details {
+            padding: 32px 18px 72px;
+            background: var(--paper);
+        }
+
+        .details-inner {
+            width: min(980px, 100%);
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: clamp(1.3rem, 2vw, 1.75rem);
+            font-weight: 400;
+        }
+
+        .meta {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            padding: 7px 10px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 700px) {
+            .result-header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .actions,
+            button,
+            .button-link {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="result-panel" aria-labelledby="page-title">
+            <div class="result-inner">
+                <div class="result-header">
+                    <h1 id="page-title">SP2 Engine Synth</h1>
+                    <div class="actions">
+                        <button type="button" id="copy-all">Copy all</button>
+                        <a class="button-link" href="/">Convert another</a>
+                    </div>
+                </div>
+
+                <pre class="output-box" id="result-output">{% if output %}{{ output }}{% endif %}{% if errors %}
+{{ errors }}{% endif %}</pre>
+            </div>
+        </section>
+
+        <section class="details" aria-labelledby="details-title">
+            <div class="details-inner">
+                <h2 id="details-title">{% if success %}Generated output{% else %}Conversion failed{% endif %}</h2>
+                <div class="meta">
+                    <span class="pill">Loop: {% if loop %}on{% else %}off{% endif %}</span>
+                    <span class="pill">Normalize octaves: {% if normalize %}on{% else %}off{% endif %}</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const copyButton = document.querySelector("#copy-all");
+        const output = document.querySelector("#result-output");
+
+        copyButton.addEventListener("click", async () => {
+            await navigator.clipboard.writeText(output.textContent);
+            copyButton.textContent = "Copied";
+            window.setTimeout(() => {
+                copyButton.textContent = "Copy all";
+            }, 1400);
+        });
+    </script>
+</body>
+</html>
