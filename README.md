@@ -1,4 +1,4 @@
-﻿# SimplePlanes2 Car Engine Sequencer
+﻿# SimplePlanes2 Car Engine Synthesizer
 
 Converts MIDI files into SP2 funky tree expressions to control car engines as sound sources.
 
@@ -8,7 +8,7 @@ Converts MIDI files into SP2 funky tree expressions to control car engines as so
 
 ## Usage
 1. Clone the repository or download the generator script.
-2. Place MIDI files in the same directory.
+2. Place MIDI files in the same directory as the generator script.
 3. Run the generator script.
 	- `python generator.py [-o output_file.txt] [--loop] [--normalize] <midi_file.mid>`
 4. Copy the generated expression into the input controller of the engine(s).
